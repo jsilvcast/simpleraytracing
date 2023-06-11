@@ -28,9 +28,11 @@ import matplotlib.pyplot as plt
 w = 400
 h = 300
 
+
 def normalize(x):
     x /= np.linalg.norm(x)
     return x
+
 
 def intersect_plane(O, D, P, N):
     # Return the distance from O to the intersection of the ray (O, D) with the 
@@ -43,6 +45,7 @@ def intersect_plane(O, D, P, N):
     if d < 0:
         return np.inf
     return d
+
 
 def intersect_sphere(O, D, S, R):
     # Return the distance from O to the intersection of the ray (O, D) with the 
@@ -63,11 +66,13 @@ def intersect_sphere(O, D, S, R):
             return t1 if t0 < 0 else t0
     return np.inf
 
+
 def intersect(O, D, obj):
     if obj['type'] == 'plane':
         return intersect_plane(O, D, obj['position'], obj['normal'])
     elif obj['type'] == 'sphere':
         return intersect_sphere(O, D, obj['position'], obj['radius'])
+
 
 def get_normal(obj, M):
     # Find normal.
@@ -76,12 +81,14 @@ def get_normal(obj, M):
     elif obj['type'] == 'plane':
         N = obj['normal']
     return N
-    
+
+
 def get_color(obj, M):
     color = obj['color']
     if not hasattr(color, '__len__'):
         color = color(M)
     return color
+
 
 def trace_ray(rayO, rayD):
     # Find first point of intersection with the scene.
@@ -100,32 +107,54 @@ def trace_ray(rayO, rayD):
     # Find properties of the object.
     N = get_normal(obj, M)
     color = get_color(obj, M)
-    toL = normalize(L - M)
+
+    def to_lights():
+        norm = []
+        for l, c in lights_and_color:
+            norm.append([normalize(l - M), c])
+        return norm
+
+    toL = to_lights()
     toO = normalize(O - M)
+
     # Shadow: find if the point is shadowed or not.
-    l = [intersect(M + N * .0001, toL, obj_sh) 
-            for k, obj_sh in enumerate(scene) if k != obj_idx]
-    if l and min(l) < np.inf:
+
+    def check_inf(toL):
+        lights = []
+        for t, c in toL:
+            l = [intersect(M + N * .0001, t, obj_sh)
+                 for k, obj_sh in enumerate(scene) if k != obj_idx]
+            if l and min(l) < np.inf:
+                return False
+        return True
+
+    if not check_inf(toL):
         return
+
     # Start computing the color.
     col_ray = ambient
-    # Lambert shading (diffuse).
-    col_ray += obj.get('diffuse_c', diffuse_c) * max(np.dot(N, toL), 0) * color
-    # Blinn-Phong shading (specular).
-    col_ray += obj.get('specular_c', specular_c) * max(np.dot(N, normalize(toL + toO)), 0) ** specular_k * color_light
+    for t, c in toL:
+        # Lambert shading (diffuse).
+        col_ray += obj.get('diffuse_c', diffuse_c) * max(np.dot(N, t), 0) * color
+        # Blinn-Phong shading (specular).
+        col_ray += obj.get('specular_c', specular_c) * max(np.dot(N, normalize(t + toO)),
+                                                           0) ** specular_k * c
     return obj, M, N, col_ray
 
+
 def add_sphere(position, radius, color):
-    return dict(type='sphere', position=np.array(position), 
-        radius=np.array(radius), color=np.array(color), reflection=.5)
-    
+    return dict(type='sphere', position=np.array(position),
+                radius=np.array(radius), color=np.array(color), reflection=.5)
+
+
 def add_plane(position, normal):
-    return dict(type='plane', position=np.array(position), 
-        normal=np.array(normal),
-        color=lambda M: (color_plane0 
-            if (int(M[0] * 2) % 2) == (int(M[2] * 2) % 2) else color_plane1),
-        diffuse_c=.75, specular_c=.5, reflection=.25)
-    
+    return dict(type='plane', position=np.array(position),
+                normal=np.array(normal),
+                color=lambda M: (color_plane0
+                                 if (int(M[0] * 2) % 2) == (int(M[2] * 2) % 2) else color_plane1),
+                diffuse_c=.75, specular_c=.5, reflection=.25)
+
+
 # List of objects.
 color_plane0 = 1. * np.ones(3)
 color_plane1 = 0. * np.ones(3)
@@ -133,11 +162,31 @@ scene = [add_sphere([.75, .1, 1.], .6, [0., 0., 1.]),
          add_sphere([-.75, .1, 2.25], .6, [.5, .223, .5]),
          add_sphere([-2.75, .1, 3.5], .6, [1., .572, .184]),
          add_plane([0., -.5, 0.], [0., 1., 0.]),
-    ]
+         ]
+
+lights_and_color = []
+def append_light(L, color_light):
+    lights_and_color.append([L, color_light])
+
 
 # Light position and color.
 L = np.array([5., 5., -10.])
 color_light = np.ones(3)
+
+L2 = np.array([-3., 1., -10.])
+color_light_2 = np.array([0., 0., 1.])
+
+L3 = np.array([3.0, 1., -4.])
+color_light_3 = np.array([1., 0., 0.])
+
+L4 = np.array([0.0, 4., 2.])
+color_light_4 = np.array([0., 1., 0.])
+
+append_light(L, color_light)
+append_light(L2, color_light_2)
+append_light(L3, color_light_3)
+append_light(L4, color_light_4)
+
 
 # Default light and material parameters.
 ambient = .05
