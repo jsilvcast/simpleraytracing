@@ -165,6 +165,7 @@ def trace_ray(rayO, rayD):
     # Shadow: find if the point is shadowed or not.
 
     def check_inf(toL):
+        initial_len = len(toL)
         count_non_inf = 0
         aux = 0
         for t, c in toL:
@@ -174,7 +175,7 @@ def trace_ray(rayO, rayD):
                 count_non_inf += 1
                 toL.pop(aux)
             aux += 1
-        if count_non_inf == len(toL):
+        if count_non_inf == initial_len:
             return False
         return True
 
@@ -219,12 +220,11 @@ def add_triangle(points, color):
 color_plane0 = 1. * np.ones(3)
 color_plane1 = 0. * np.ones(3)
 scene = [
-    # add_sphere([.75, .1, 1.], .6, [0., 0., 1.]),
-    # add_sphere([-.75, .1, 2.25], .6, [.5, .223, .5]),
-    # add_sphere([-2.75, .1, 3.5], .6, [1., .572, .184]),
+    add_sphere([.75, .1, 1.], .6, [0., 0., 1.]),
+    add_sphere([-.75, .1, 2.25], .6, [.5, .223, .5]),
+    add_sphere([-2.75, .1, 3.5], .6, [1., .572, .184]),
     add_plane([0., -.5, 0.], [0., 1., 0.]),
-
-    add_triangle([[-2., 1., 2.], [0., 1., 2.], [0., 2., 2.]], [1., 0., 0.]),
+    add_triangle([[-2, -.5, 3.], [0.5, -.5, 4.], [-1., 2, 3.5]], [1., 0., 0.]),
 ]
 
 lights_and_color = []
@@ -238,7 +238,7 @@ def append_light(L, color_light):
 L = np.array([5., 5., -10.])
 color_light = np.ones(3)
 
-L2 = np.array([-3., 1., -2.])
+L2 = np.array([-0.5, 1, 0.5])
 color_light_2 = np.array([0., 0., 1.])
 
 L3 = np.array([3.0, 1., -4.])
