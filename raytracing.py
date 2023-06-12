@@ -165,12 +165,17 @@ def trace_ray(rayO, rayD):
     # Shadow: find if the point is shadowed or not.
 
     def check_inf(toL):
-        lights = []
+        count_non_inf = 0
+        aux = 0
         for t, c in toL:
             l = [intersect(M + N * .0001, t, obj_sh)
                  for k, obj_sh in enumerate(scene) if k != obj_idx]
             if l and min(l) < np.inf:
-                return False
+                count_non_inf += 1
+                toL.pop(aux)
+            aux += 1
+        if count_non_inf == len(toL):
+            return False
         return True
 
     if not check_inf(toL):
@@ -219,7 +224,7 @@ scene = [
     # add_sphere([-2.75, .1, 3.5], .6, [1., .572, .184]),
     add_plane([0., -.5, 0.], [0., 1., 0.]),
 
-    add_triangle([[-2., 1., 4.], [0., 1., 6.], [0., 2., 4.]], [1., 0., 0.]),
+    add_triangle([[-2., 1., 2.], [0., 1., 2.], [0., 2., 2.]], [1., 0., 0.]),
 ]
 
 lights_and_color = []
@@ -233,7 +238,7 @@ def append_light(L, color_light):
 L = np.array([5., 5., -10.])
 color_light = np.ones(3)
 
-L2 = np.array([-3., 1., -10.])
+L2 = np.array([-3., 1., -2.])
 color_light_2 = np.array([0., 0., 1.])
 
 L3 = np.array([3.0, 1., -4.])
@@ -243,9 +248,9 @@ L4 = np.array([0.0, 4., 2.])
 color_light_4 = np.array([0., 1., 0.])
 
 append_light(L, color_light)
-# append_light(L2, color_light_2)
-# append_light(L3, color_light_3)
-# append_light(L4, color_light_4)
+append_light(L2, color_light_2)
+append_light(L3, color_light_3)
+append_light(L4, color_light_4)
 
 # Default light and material parameters.
 ambient = .05
