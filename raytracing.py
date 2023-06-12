@@ -47,6 +47,47 @@ def intersect_plane(O, D, P, N):
     return d
 
 
+def is_point_in_3d_triangle(pt, points, D):
+    v0, v1, v2 = points
+
+    edge0 = v1 - v0
+    vp0 = pt - v0
+    C = np.cross(edge0, vp0)
+    if np.dot(D, C) < 0:
+        return False
+
+    edge1 = v2 - v1
+    vp1 = pt - v1
+    C = np.cross(edge1, vp1)
+    if np.dot(D, C) < 0:
+        return False
+
+    edge2 = v0 - v2
+    vp2 = pt - v2
+    C = np.cross(edge2, vp2)
+    if np.dot(D, C) < 0:
+        return False
+
+    return True
+
+
+def intersect_triangle(O, D, points, N):
+    # Return the distance from O to the intersection of the ray (O, D) with the
+    # plane (P, N), or +inf if there is no intersection.
+    # O and P are 3D points, D and N (normal) are normalized vectors.
+    denom = np.dot(D, N)
+    if np.abs(denom) < 1e-6:
+        return np.inf
+    d = np.dot(points[0] - O, N) / denom
+    if d < 0:
+        return np.inf
+
+    pt3d = O + D * d
+    if not is_point_in_3d_triangle(pt3d, points, D):
+        return np.inf
+    return d
+
+
 def intersect_sphere(O, D, S, R):
     # Return the distance from O to the intersection of the ray (O, D) with the 
     # sphere (S, R), or +inf if there is no intersection.
@@ -72,6 +113,8 @@ def intersect(O, D, obj):
         return intersect_plane(O, D, obj['position'], obj['normal'])
     elif obj['type'] == 'sphere':
         return intersect_sphere(O, D, obj['position'], obj['radius'])
+    elif obj['type'] == 'triangle':
+        return intersect_triangle(O, D, obj['points'], obj['normal'])
 
 
 def get_normal(obj, M):
@@ -79,6 +122,8 @@ def get_normal(obj, M):
     if obj['type'] == 'sphere':
         N = normalize(M - obj['position'])
     elif obj['type'] == 'plane':
+        N = obj['normal']
+    elif obj['type'] == 'triangle':
         N = obj['normal']
     return N
 
@@ -155,16 +200,31 @@ def add_plane(position, normal):
                 diffuse_c=.75, specular_c=.5, reflection=.25)
 
 
+def add_triangle(points, color):
+    def calc_normal_from_points(pts):
+        # If points are counter-clockwise normal is pointing up.
+        return normalize(np.cross(pts[2] - pts[0], pts[1] - pts[0]))
+
+    return dict(type='triangle', points=np.array(points),
+                normal=np.array(calc_normal_from_points(np.array(points))),
+                color=np.array(color), diffuse_c=.75, specular_c=.5, reflection=.25)
+
+
 # List of objects.
 color_plane0 = 1. * np.ones(3)
 color_plane1 = 0. * np.ones(3)
-scene = [add_sphere([.75, .1, 1.], .6, [0., 0., 1.]),
-         add_sphere([-.75, .1, 2.25], .6, [.5, .223, .5]),
-         add_sphere([-2.75, .1, 3.5], .6, [1., .572, .184]),
-         add_plane([0., -.5, 0.], [0., 1., 0.]),
-         ]
+scene = [
+    # add_sphere([.75, .1, 1.], .6, [0., 0., 1.]),
+    # add_sphere([-.75, .1, 2.25], .6, [.5, .223, .5]),
+    # add_sphere([-2.75, .1, 3.5], .6, [1., .572, .184]),
+    add_plane([0., -.5, 0.], [0., 1., 0.]),
+
+    add_triangle([[-2., 1., 4.], [0., 1., 6.], [0., 2., 4.]], [1., 0., 0.]),
+]
 
 lights_and_color = []
+
+
 def append_light(L, color_light):
     lights_and_color.append([L, color_light])
 
@@ -183,10 +243,9 @@ L4 = np.array([0.0, 4., 2.])
 color_light_4 = np.array([0., 1., 0.])
 
 append_light(L, color_light)
-append_light(L2, color_light_2)
-append_light(L3, color_light_3)
-append_light(L4, color_light_4)
-
+# append_light(L2, color_light_2)
+# append_light(L3, color_light_3)
+# append_light(L4, color_light_4)
 
 # Default light and material parameters.
 ambient = .05
